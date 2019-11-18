@@ -9,7 +9,7 @@ import pandas as pd
 import os
 import sys
 
-sys.path.append("/Users/sanmathikamath/projects/voicemap-master")
+sys.path.append("/Users/sanmathikamath/projects/Speaker_Recognition/voicemap-master")
 
 from config import PATH
 from voicemap.librispeech import LibriSpeechDataset
@@ -31,16 +31,16 @@ downsampling = 4
 n_seconds = 3
 validation_set = "dev-clean"
 siamese_model_path = (
-    PATH + "/models_new/siamese__filters_128__embed_64__drop_0.0__pad=True.hdf5"
+    PATH + "/models_e50_full/siamese__filters_128__embed_64__drop_0.0__pad=True.hdf5"
 )
-classifier_model_path = (
-    PATH + "/models_new/classifier__filters_128__embed_64__drop_0.0__pad=True.hdf5"
-)
-k_way = range(2, 21, 1)
-n_shot = [1, 5]
+#classifier_model_path = (
+#    PATH + "/models_e50/lassifier__filters_128__embed_64__drop_0.0__pad=True.hdf5"
+#)
+k_way = [2,5,10] #range(2, 21, 1)
+n_shot =  [1]
 num_tasks = 1000
 distance = "dot_product"
-results_path = PATH + "/logs/k-way_n-shot_accuracy_{}_{}.csv".format(
+results_path = PATH + "/logs/k-way_n-shot_accuracy_{}_{}_e50_full.csv".format(
     validation_set, distance
 )
 
@@ -57,7 +57,7 @@ batch_preprocessor = BatchPreProcessor("siamese", preprocess_instances(downsampl
 #############
 siamese = load_model(siamese_model_path)
 # siamese = load_weights(siamese_model_path)
-classifier = load_model(classifier_model_path)
+#classifier = load_model(classifier_model_path)
 
 with open(results_path, "w") as f:
     print("method,n_correct,n_tasks,n_shot,k_way", file=f)
@@ -65,6 +65,7 @@ with open(results_path, "w") as f:
 results = []
 for k in k_way:
     for n in n_shot:
+        
         n_correct = n_shot_task_evaluation(
             siamese,
             valid,
@@ -89,7 +90,7 @@ for k in k_way:
             print(
                 "{},{},{},{},{}".format("siamese", n_correct, num_tasks, n, k), file=f
             )
-
+        '''
         # Append to file because I wanna look at intermediate results
         n_correct = n_shot_task_evaluation(
             classifier,
@@ -110,12 +111,12 @@ for k in k_way:
                 "k": k,
             }
         )
-
+        
         with open(results_path, "a") as f:
             print(
                 "{},{},{},{},{}".format("classifier", n_correct, num_tasks, n, k),
                 file=f,
             )
-
+        '''
 results = pd.DataFrame(results)
 results.to_csv(results_path, index=False)

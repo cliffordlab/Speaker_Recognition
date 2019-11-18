@@ -5,7 +5,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau
 import multiprocessing
 import sys
 
-sys.path.append("/Users/sanmathikamath/projects/voicemap-master")
+sys.path.append("/Users/sanmathikamath/projects/Speaker_Recognition/voicemap-master")
 
 from voicemap.utils import (
     preprocess_instances,
@@ -35,16 +35,16 @@ training_set = ["train-clean-100"]
 # training_set = ['dev-clean']
 validation_set = "dev-clean"
 pad = True
-num_epochs = 10
-evaluate_every_n_batches = 10
-num_evaluation_tasks = 10
+num_epochs = 50
+evaluate_every_n_batches = 100
+num_evaluation_tasks = 100
 n_shot_classification = 1
 k_way_classification = 5
 
 # Derived parameters
 input_length = int(LIBRISPEECH_SAMPLING_RATE * n_seconds / downsampling)
-param_str = "siamese__filters_{}__embed_{}__drop_{}__pad={}".format(
-    filters, embedding_dimension, dropout, pad
+param_str = "siamese__filters_{}__embed_{}__drop_{}__pad={}_epochs_{}".format(
+    filters, embedding_dimension, dropout, pad, num_epochs
 )
 
 
@@ -103,7 +103,7 @@ siamese.fit_generator(
         # Then log and checkpoint
         CSVLogger(PATH + "/logs/{}.csv".format(param_str)),
         ModelCheckpoint(
-            PATH + "/models_few_spkrs/{}.hdf5".format(param_str),
+            PATH + "/models_e50_spkrs/{}.hdf5".format(param_str),
             monitor="val_{}-shot_acc".format(n_shot_classification),
             mode="max",
             save_best_only=True,
