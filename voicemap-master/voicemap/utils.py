@@ -149,7 +149,6 @@ def n_shot_task_evaluation(
             # Perform preprocessing
             # Pass an empty list to the labels parameter as preprocessor functions on batches not samples
             ([input_1, input_2], _) = preprocessor(([input_1, input_2], []))
-
             pred = model.predict([input_1, input_2])
 
             if np.argmin(pred[:, 0]) == 0:
@@ -169,7 +168,7 @@ def n_shot_task_evaluation(
 
         for i_eval in tqdm((range(num_tasks))):
             query_sample, support_set_samples = dataset.build_n_shot_task(k, n)
-
+            val_spkr_id=query_sample[1]
             # Perform preprocessing
             query_instance = preprocessor.instance_preprocessor(
                 query_sample[0].reshape(1, -1, 1)
@@ -256,7 +255,7 @@ def n_shot_task_evaluation(
                     ValueError,
                     "Distance must be in (euclidean, cosine, dot_product)",
                 )
-
+           
             if np.argmin(pred) == 0:
                 # 0 is the correct result as by the function definition
                 n_correct += 1

@@ -48,6 +48,7 @@ def get_baseline_convolutional_encoder(
     return encoder
 
 
+
 def build_siamese_net(encoder, input_shape, distance_metric="uniform_euclidean"):
     assert distance_metric in (
         "uniform_euclidean",

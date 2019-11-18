@@ -70,7 +70,7 @@ class LibriSpeechDataset(Sequence):
         else:
             # df = pd.read_csv(PATH+'/data/LibriSpeech/SPEAKERS.TXT', skiprows=11, delimiter='|', error_bad_lines=False)
             df = pd.read_csv(
-                PATH + "/data/LibriSpeech/speaker_small.txt",
+                PATH + "/data/LibriSpeech/SPEAKERS.txt",
                 skiprows=0,
                 delimiter="|",
                 error_bad_lines=False,
@@ -256,7 +256,7 @@ class LibriSpeechDataset(Sequence):
 
         if k <= 1:
             raise (ValueError, "k must be greater than or equal to one!")
-
+        
         query = self.df.sample(1, weights="length")
         query_sample = self[query.index.values[0]]
 
