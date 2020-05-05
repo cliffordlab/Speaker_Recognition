@@ -33,7 +33,7 @@ class LibriSpeechDataset(Sequence):
         self, subsets, seconds, label="speaker", stochastic=True, pad=False, cache=True
     ):
         assert label in (
-            "sex",
+            "sex", 
             "speaker",
         ), "Label type must be one of ('sex', 'speaker')"
         self.subset = subsets
@@ -71,7 +71,7 @@ class LibriSpeechDataset(Sequence):
             # df = pd.read_csv(PATH+'/data/LibriSpeech/SPEAKERS.TXT', skiprows=11, delimiter='|', error_bad_lines=False)
             df = pd.read_csv(
                 PATH + "/data/LibriSpeech/SPEAKERS.txt",
-                skiprows=0,
+                skiprows=11,
                 delimiter="|",
                 error_bad_lines=False,
             )
