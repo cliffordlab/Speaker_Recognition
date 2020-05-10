@@ -30,7 +30,7 @@ class LibriSpeechDataset(Sequence):
     """
 
     def __init__(
-        self, subsets, seconds, label="speaker", stochastic=True, pad=False, cache=True
+        self, subsets, seconds, label="speaker", stochastic=True, pad=False, cache=True, max_length = 5
     ):
         assert label in (
             "sex", 
@@ -42,7 +42,7 @@ class LibriSpeechDataset(Sequence):
         self.stochastic = stochastic
         self.pad = pad
         self.label = label
-
+        self.max_length = int(max_length *  LIBRISPEECH_SAMPLING_RATE)
         print(
             "Initialising LibriSpeechDataset with minimum length = {}s and subsets = {}".format(
                 seconds, subsets
@@ -117,19 +117,23 @@ class LibriSpeechDataset(Sequence):
         self.datasetid_to_filepath = self.df.to_dict()["filepath"]
         self.datasetid_to_speaker_id = self.df.to_dict()["speaker_id"]
         self.datasetid_to_sex = self.df.to_dict()["sex"]
-
+        self.pre_read = False
+        
         print("Finished indexing data. {} usable files found.".format(len(self)))
 
     def __getitem__(self, index):
-        instance, samplerate = sf.read(self.datasetid_to_filepath[index])
+        if not self.pre_read:
+            instance, samplerate = sf.read(self.datasetid_to_filepath[index])
+        else:
+            instance = self.df["Audio"][index]
         # Choose a random sample of the file
         if self.stochastic:
             fragment_start_index = np.random.randint(
-                0, max(len(instance) - self.fragment_length, 1)
+                0, max(len(instance) - self.max_length, 1)
             )
         else:
             fragment_start_index = 0
-
+        #print(index, fragment_start_index)
         instance = instance[
             fragment_start_index : fragment_start_index + self.fragment_length
         ]
@@ -165,6 +169,16 @@ class LibriSpeechDataset(Sequence):
 
     def __len__(self):
         return len(self.df)
+
+    def read_audio_dataset(self):
+        #index = list(self.datasetid_to_filepath.keys())
+        files = list(self.datasetid_to_filepath.values())
+        audio = []
+        for datafile in files:
+            instance, samplerate = sf.read(datafile)
+            audio.append(instance)
+        self.df['Audio'] = audio
+        print("Loaded audio file into DataFrame")
 
     def num_classes(self):
         return len(self.df["speaker_id"].unique())
