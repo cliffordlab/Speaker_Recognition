@@ -59,7 +59,7 @@ class LibriSpeechDataset(Sequence):
         if cache:
             # Check for cached files
             for s in subsets:
-                subset_index_path = PATH + "/data/{}.index.csv".format(s)
+                subset_index_path = PATH + "/data/{}_1.index.csv".format(s)
                 if os.path.exists(subset_index_path):
                     cached_df.append(pd.read_csv(subset_index_path))
                     found_cache[s] = True
@@ -70,8 +70,8 @@ class LibriSpeechDataset(Sequence):
         else:
             # df = pd.read_csv(PATH+'/data/LibriSpeech/SPEAKERS.TXT', skiprows=11, delimiter='|', error_bad_lines=False)
             df = pd.read_csv(
-                PATH + "/data/LibriSpeech/SPEAKERS.txt",
-                skiprows=11,
+                PATH + "/data/SPEAKERS_250.TXT",
+                skiprows=0,
                 delimiter="|",
                 error_bad_lines=False,
             )
@@ -96,7 +96,7 @@ class LibriSpeechDataset(Sequence):
         # Save index files to data folder
         for s in subsets:
             self.df[self.df["subset"] == s].to_csv(
-                PATH + "/data/{}_1.index.csv".format(s), index=False
+                PATH + "/data/{}_250.index.csv".format(s), index=False
             )
 
         # Trim too-small files
@@ -174,10 +174,13 @@ class LibriSpeechDataset(Sequence):
         #index = list(self.datasetid_to_filepath.keys())
         files = list(self.datasetid_to_filepath.values())
         audio = []
+        progress_bar = tqdm(total=len(files))
         for datafile in files:
             instance, samplerate = sf.read(datafile)
             audio.append(instance)
+            progress_bar.update(1)
         self.df['Audio'] = audio
+        progress_bar.close()
         print("Loaded audio file into DataFrame")
 
     def num_classes(self):

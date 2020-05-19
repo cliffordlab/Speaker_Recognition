@@ -1,9 +1,10 @@
 import sys
 sys.path.append('../voicemap/')
 sys.path.append('../')
-from librispeech import LibriSpeechDataset
-from utils import whiten, contrastive_loss, preprocess_instances, BatchPreProcessor
-from config import LIBRISPEECH_SAMPLING_RATE
+sys.path.append("/home/skamat2/SpeakerRecognition/voicemap-master")
+from voicemap.librispeech import LibriSpeechDataset
+from voicemap.utils import whiten, contrastive_loss, preprocess_instances, BatchPreProcessor
+from config import LIBRISPEECH_SAMPLING_RATE, PATH
 from voicemap.models import get_baseline_convolutional_encoder, build_siamese_net
 from keras.optimizers import Adam
 import numpy as np
@@ -70,60 +71,74 @@ def extract_embedding(X_array, encoder, preprocessor):
 
 if __name__ == '__main__':
     
-    ## Initialising all Parameters
-    n_seconds = 2
     downsampling = 4
     batchsize = 64
-    save_dir = '../notebooks/saved_data_new/'
-    input_length = int(LIBRISPEECH_SAMPLING_RATE * n_seconds / downsampling)
-    # model_path = '../models_new/siamese__filters_128__embed_64__drop_0.0__pad=True.hdf5'
-    # model_path = '../models_e50_cluster/n_seconds/siamese__nseconds_1.0__filters_128__embed_64__drop_0.0__r_0.hdf5'
-    model_path ='../models_retry/n_seconds/siamese__nseconds_2__filters_128__embed_64__drop_0.0__r_0_epochs_.hdf5'
-    logfile = open('n_spkrs.log'+str(n_seconds), 'w')
-    print(model_path, file = logfile)
-    np.random.seed(2020)
-    ## Training
+    save_dir = PATH+'/notebooks/saved_data_prev/'
     training_set = ['train-clean-100']
-    train = LibriSpeechDataset(training_set, n_seconds, stochastic=False, pad=True)#, cache=False)
-
+    
     batch_preprocessor = BatchPreProcessor("classifier", preprocess_instances(downsampling))
     preprocessor = batch_preprocessor
 
-    X_train_files, X_test_files, y_train, y_test = split_files(train)
 
-    train.read_audio_dataset()
-    train.pre_read = True
-    X_read = read_data(X_train_files, train)
-    val_read = read_data(X_test_files,train)
+    total_seconds =[1,2,3,4,5]
     
-    encoder = load_encoder(model_path, input_length)
-    print("Extracting Embedding")
+    for n_seconds in total_seconds:
+        ## Initialising all Parameters
+        
+        input_length = int(LIBRISPEECH_SAMPLING_RATE * n_seconds / downsampling)
+        model_path = PATH+'/models_360_250/n_seconds/siamese__nseconds_'+str(n_seconds)+'__filters_128__embed_64__drop_0.0__r_0.hdf5'
+        logfile = open(PATH+'/logs/n_spkrs_all_500_prev_'+str(n_seconds)+'.log', 'w')
+        print(model_path, file = logfile)
+        np.random.seed(2020)
+        ## Training
+        print("training")
+        if n_seconds == total_seconds[0]:
+            train = LibriSpeechDataset(training_set, n_seconds, stochastic=False, pad=True)#, cache=False)
+            #train.read_audio_dataset()
+            #train.pre_read = True
+        else:
+            train.fragment_seconds = n_seconds
+            train.fragment_length = int(n_seconds * LIBRISPEECH_SAMPLING_RATE)
+        
+        X_train_files, X_test_files, y_train, y_test = split_files(train)
+                
+        encoder = load_encoder(model_path, input_length)
+        print("Extracting Embedding")
+        saved = True
+        if not saved: 
+            X_read = read_data(X_train_files, train)
+            val_read = read_data(X_test_files,train)
+            emb = extract_embedding(X_read, encoder, preprocessor)
+            val_emb = extract_embedding(val_read, encoder, preprocessor)
+            np.save(save_dir+'emb_'+str(n_seconds)+'sec.npy',emb)
+            np.save(save_dir+'val_emb_'+str(n_seconds)+ 'sec.npy',val_emb)
+        else:
+            print("Loading embedding")
+            emb = np.load(save_dir+'emb_'+str(n_seconds)+'sec.npy')
+            val_emb = np.load(save_dir+'val_emb_'+str(n_seconds)+ 'sec.npy')
+        print("Training classifier")
+        
     saved = False
     if not saved: 
-        emb = extract_embedding(X_read, encoder, preprocessor)
-        val_emb = extract_embedding(val_read, encoder, preprocessor)
-        np.save(save_dir+'emb_'+str(n_seconds)+'sec_sampling.npy',emb)
-        np.save(save_dir+'val_emb_'+str(n_seconds)+ 'sec_sampling.npy',val_emb)
-    else:
-        emb = np.load(save_dir+'emb_'+str(n_seconds)+'sec_sampling.npy')
-        val_emb = np.load(save_dir+'val_emb_'+str(n_seconds)+ 'sec_sampling.npy')
-    print("Training classifier")
-    ## Train Classifier
-    clf = svm.SVC(gamma = 'scale', probability=True)
-    clf.fit(emb, y_train)
+        ## Train Classifier
+        clf = svm.SVC(gamma = 'scale', probability=True)
+        print(len(emb), len(y_train))
+        clf.fit(emb, y_train)
+        ## Saving classifier
+        with open(save_dir+'clf_'+str(n_seconds)+'sec.pkl', 'wb') as f:
+            pickle.dump(clf, f)
+        y_pred = clf.predict(val_emb)
+     
+        print(accuracy_score(y_test, y_pred), file = logfile) 
+        print(accuracy_score(y_test, y_pred)) 
 
-    ## Print Accuracy
-    y_pred = clf.predict(val_emb)
-    
-    print(accuracy_score(y_test, y_pred), file = logfile) 
-    print(accuracy_score(y_test, y_pred)) 
-    ## Saving classifier
-    with open(save_dir+'clf_'+str(n_seconds)+'_sampling.pkl', 'wb') as f:
-        pickle.dump(clf, f)
+    else:
+        with open(save_dir+'clf_'+str(n_seconds)+'.pkl', 'rb') as f:
+            clf = pickle.load(f)
 
     run_num_experiment = True
     if run_num_experiment:
-        from test_num_speakers import *
-            run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb, logfile, num_reps =100)
+        from experiments.test_num_speakers import *
+        run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb, logfile,n_seconds, num_reps =100)
 
     logfile.close()

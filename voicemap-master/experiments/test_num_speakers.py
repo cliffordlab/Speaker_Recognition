@@ -72,5 +72,5 @@ def run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_
         print("Num Speakers:", num_speakers, "Accuracy: mean", np.round(np.mean(np.array(acc)),4),"std:", np.round(np.std(np.array(acc)),4), file = logfile)
         print("Num Speakers:", num_speakers, "Accuracy: mean", np.round(np.mean(np.array(acc)),4),"std:", np.round(np.std(np.array(acc)),4))
         total_acc_list.append(acc)
-        np.save('total_acc_list'+str(num_speakers), total_acc_list)
+        np.save('total_acc_list_'+str(num_speakers), total_acc_list)
 
