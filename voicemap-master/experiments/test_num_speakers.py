@@ -1,5 +1,5 @@
 from sklearn.metrics import accuracy_score
-from test_pipeline import *
+from experiments.test_pipeline import *
 import numpy as np
 
 def num_speakers_train(X_train_files, y_train, two_spkr, emb=None):
@@ -50,7 +50,7 @@ def num_speakers_val(X_test_files, y_test, two_spkr, val_emb = None):
     
     return (X_two_val, y_two_val)
 
-def run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb,  logfile, num_reps =100):
+def run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb,  logfile, n_seconds, num_reps =100):
     speaker_range = [2, 5, 10, 50, 100]
 
     total_acc_list =[]
@@ -72,5 +72,6 @@ def run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_
         print("Num Speakers:", num_speakers, "Accuracy: mean", np.round(np.mean(np.array(acc)),4),"std:", np.round(np.std(np.array(acc)),4), file = logfile)
         print("Num Speakers:", num_speakers, "Accuracy: mean", np.round(np.mean(np.array(acc)),4),"std:", np.round(np.std(np.array(acc)),4))
         total_acc_list.append(acc)
-        np.save('total_acc_list_'+str(num_speakers), total_acc_list)
+    np.save('total_acc_list_'+str(num_reps)+'_prev_'+str(n_seconds), total_acc_list)
+    del total_acc_list
 

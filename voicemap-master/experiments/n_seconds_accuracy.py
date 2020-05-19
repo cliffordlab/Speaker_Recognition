@@ -5,14 +5,14 @@ import os
 from keras.optimizers import Adam
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau
 import multiprocessing
-
 import sys
-sys.path.append("/Users/sanmathikamath/projects/Speaker_Recognition/voicemap-master")
+sys.path.append("/home/skamat2/SpeakerRecognition/voicemap-master")
 
 from voicemap.utils import preprocess_instances, NShotEvaluationCallback, BatchPreProcessor
 from voicemap.models import get_baseline_convolutional_encoder, build_siamese_net
 from voicemap.librispeech import LibriSpeechDataset
 from config import LIBRISPEECH_SAMPLING_RATE, PATH
+
 
 # Mute excessively verbose Tensorflow output
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -22,21 +22,19 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # Parameters #
 ##############
 n_repeats = 1
-#n_seconds = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
-n_seconds = [1.0, 2.0, 3.0, 4.0, 5.0,6.0]
+n_seconds = [1,2,3,4,5]
 downsampling = 4
 batchsize = 32
 model_n_filters = 128
 model_embedding_dimension = 64
 model_dropout = 0.0
-training_set = ['train-clean-100']
+training_set = ['train-clean-360']
 validation_set = 'dev-clean'
 num_epochs = 50
-evaluate_every_n_batches = 1000
-num_evaluation_tasks = 500
+evaluate_every_n_batches = 100
+num_evaluation_tasks = 100
 n_shot_classification = 1
 k_way_classification = 5
-
 
 #################
 # Training Loop #
@@ -48,8 +46,8 @@ for fragment_length in n_seconds:
     input_length = int(LIBRISPEECH_SAMPLING_RATE * fragment_length / downsampling)
 
     # Create datasets
-    train = LibriSpeechDataset(training_set, fragment_length, pad=True)
-    valid = LibriSpeechDataset(validation_set, fragment_length, stochastic=False, pad=True)
+    train = LibriSpeechDataset(training_set, fragment_length, pad=True, cache= True)
+    valid = LibriSpeechDataset(validation_set, fragment_length, stochastic=False, pad=True, cache = True)
 
     batch_preprocessor = BatchPreProcessor('siamese', preprocess_instances(downsampling))
     train_generator = (batch_preprocessor(batch) for batch in train.yield_verification_batches(batchsize))
@@ -63,7 +61,7 @@ for fragment_length in n_seconds:
         siamese.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
 
         # Train
-        param_str = 'siamese__nseconds_{}__filters_{}__embed_{}__drop_{}__r_{}_epochs_{}'.format(fragment_length, model_n_filters,
+        param_str = 'siamese__nseconds_{}__filters_{}__embed_{}__drop_{}__r_{}'.format(fragment_length, model_n_filters,
                                                                                        model_embedding_dimension,
                                                                                        model_dropout, repeat, num_epochs)
         print(param_str)
@@ -73,8 +71,8 @@ for fragment_length in n_seconds:
             validation_data=valid_generator,
             validation_steps=100,
             epochs=num_epochs,
-            workers=multiprocessing.cpu_count(),
-            use_multiprocessing=True,
+            workers=1, #multiprocessing.cpu_count(),
+            use_multiprocessing=False,
             callbacks=[
                 # First generate custom n-shot classification metric
                 NShotEvaluationCallback(
@@ -82,9 +80,9 @@ for fragment_length in n_seconds:
                     preprocessor=batch_preprocessor,
                 ),
                 # Then log and checkpoint
-                CSVLogger(PATH + '/logs/n_seconds/{}.csv'.format(param_str)),
+                CSVLogger(PATH + '/logs/n_seconds_models_360_250_r/{}.csv'.format(param_str)),
                 ModelCheckpoint(
-                    PATH + '/models_e50_n_seconds/n_seconds/{}.hdf5'.format(param_str),
+                    PATH + '/models_360_250/n_seconds_r/{}.hdf5'.format(param_str),
                     monitor='val_{}-shot_acc'.format(n_shot_classification),
                     mode='max',
                     save_best_only=True,

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 import pdb
-from config import PATH, LIBRISPEECH_SAMPLING_RATE
+from config import PATH, LIBRISPEECH_SAMPLING_RATE, DATAPATH
 
 
 sex_to_label = {"M": False, "F": True}
@@ -63,7 +63,6 @@ class LibriSpeechDataset(Sequence):
                 if os.path.exists(subset_index_path):
                     cached_df.append(pd.read_csv(subset_index_path))
                     found_cache[s] = True
-
         # Index the remaining subsets if any
         if all(found_cache.values()) and cache:
             self.df = pd.concat(cached_df)
@@ -96,7 +95,7 @@ class LibriSpeechDataset(Sequence):
         # Save index files to data folder
         for s in subsets:
             self.df[self.df["subset"] == s].to_csv(
-                PATH + "/data/{}_250.index.csv".format(s), index=False
+                PATH + "/data/{}_1.index.csv".format(s), index=False
             )
 
         # Trim too-small files
@@ -315,7 +314,7 @@ class LibriSpeechDataset(Sequence):
         # Quick first pass to find total for tqdm bar
         subset_len = 0
         for root, folders, files in os.walk(
-            PATH + "/data/LibriSpeech/{}/".format(subset)
+            DATAPATH + "/LibriSpeech/{}/".format(subset)
         ):
             subset_len += len(
                 [f for f in files if f.endswith(".flac") or f.endswith(".wav")]
@@ -323,7 +322,7 @@ class LibriSpeechDataset(Sequence):
 
         progress_bar = tqdm(total=subset_len)
         for root, folders, files in os.walk(
-            PATH + "/data/LibriSpeech/{}/".format(subset)
+            DATAPATH + "/LibriSpeech/{}/".format(subset)
         ):
             if len(files) == 0 or files[0] == ".DS_Store":
                 continue

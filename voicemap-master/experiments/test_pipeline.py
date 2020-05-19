@@ -73,21 +73,27 @@ if __name__ == '__main__':
     
     downsampling = 4
     batchsize = 64
-    save_dir = PATH+'/notebooks/saved_data_prev/'
+    save_dir = PATH+'/notebooks/saved_data_prev_2/'
     training_set = ['train-clean-100']
     
     batch_preprocessor = BatchPreProcessor("classifier", preprocess_instances(downsampling))
     preprocessor = batch_preprocessor
 
-
-    total_seconds =[1,2,3,4,5]
+    models = ['/models_e50_full/n_seconds/siamese__nseconds_1.0__filters_128__embed_64__drop_0.0__r_0.hdf5',
+            '/models_retry/n_seconds/siamese__nseconds_2__filters_128__embed_64__drop_0.0__r_0_epochs_.hdf5'] 
+            #models = ['/models_retry/n_seconds/siamese__nseconds_3__filters_128__embed_64__drop_0.0__r_0.hdf5',
+            #'/models_retry/n_seconds/siamese__nseconds_4__filters_128__embed_64__drop_0.0__r_0.hdf5',
+            #'/models_retry/n_seconds/siamese__nseconds_5__filters_128__embed_64__drop_0.0__r_0.hdf5']
+            
     
+    total_seconds =[1,2]
+    i=0
     for n_seconds in total_seconds:
         ## Initialising all Parameters
-        
         input_length = int(LIBRISPEECH_SAMPLING_RATE * n_seconds / downsampling)
-        model_path = PATH+'/models_360_250/n_seconds/siamese__nseconds_'+str(n_seconds)+'__filters_128__embed_64__drop_0.0__r_0.hdf5'
-        logfile = open(PATH+'/logs/n_spkrs_all_500_prev_'+str(n_seconds)+'.log', 'w')
+        #model_path = PATH+'/models_360_250/n_seconds/siamese__nseconds_'+str(n_seconds)+'__filters_128__embed_64__drop_0.0__r_0.hdf5'
+        model_path = PATH+models[i]
+        logfile = open(PATH+'/logs/n_spkrs_500_prev_'+str(n_seconds)+'.log', 'w')
         print(model_path, file = logfile)
         np.random.seed(2020)
         ## Training
@@ -110,35 +116,35 @@ if __name__ == '__main__':
             val_read = read_data(X_test_files,train)
             emb = extract_embedding(X_read, encoder, preprocessor)
             val_emb = extract_embedding(val_read, encoder, preprocessor)
-            np.save(save_dir+'emb_'+str(n_seconds)+'sec.npy',emb)
-            np.save(save_dir+'val_emb_'+str(n_seconds)+ 'sec.npy',val_emb)
+            np.save(save_dir+'emb_'+str(n_seconds)+'sec'+str(i)+'.npy',emb)
+            np.save(save_dir+'val_emb_'+str(n_seconds)+ 'sec'+str(i)+'.npy',val_emb)
         else:
             print("Loading embedding")
             emb = np.load(save_dir+'emb_'+str(n_seconds)+'sec.npy')
             val_emb = np.load(save_dir+'val_emb_'+str(n_seconds)+ 'sec.npy')
         print("Training classifier")
-        
-    saved = False
-    if not saved: 
-        ## Train Classifier
-        clf = svm.SVC(gamma = 'scale', probability=True)
-        print(len(emb), len(y_train))
-        clf.fit(emb, y_train)
-        ## Saving classifier
-        with open(save_dir+'clf_'+str(n_seconds)+'sec.pkl', 'wb') as f:
-            pickle.dump(clf, f)
-        y_pred = clf.predict(val_emb)
-     
-        print(accuracy_score(y_test, y_pred), file = logfile) 
-        print(accuracy_score(y_test, y_pred)) 
+        saved = True
+        if not saved: 
+            ## Train Classifier
+            clf = svm.SVC(gamma = 'scale', probability=True)
+            print(len(emb), len(y_train))
+            clf.fit(emb, y_train)
+            ## Saving classifier
+            with open(save_dir+'clf_'+str(n_seconds)+'sec_r'+str(i)+'.pkl', 'wb') as f:
+                pickle.dump(clf, f)
+            y_pred = clf.predict(val_emb)
+         
+            print(accuracy_score(y_test, y_pred), file = logfile) 
+            print(accuracy_score(y_test, y_pred)) 
 
-    else:
-        with open(save_dir+'clf_'+str(n_seconds)+'.pkl', 'rb') as f:
-            clf = pickle.load(f)
+        else:
+            with open(save_dir+'clf_'+str(n_seconds)+'sec.pkl', 'rb') as f:
+                clf = pickle.load(f)
 
-    run_num_experiment = True
-    if run_num_experiment:
-        from experiments.test_num_speakers import *
-        run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb, logfile,n_seconds, num_reps =100)
+        run_num_experiment = True
+        if run_num_experiment:
+            from experiments.test_num_speakers import *
+            run_exp_num_speakers(X_train_files, y_train, X_test_files, y_test, emb, val_emb, logfile,n_seconds, num_reps =500)
 
-    logfile.close()
+        logfile.close()
+        i+=1
